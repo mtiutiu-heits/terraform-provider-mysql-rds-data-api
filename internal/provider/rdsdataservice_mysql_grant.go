@@ -284,6 +284,9 @@ func (r *MysqlGrantResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
+	// TO DO
+	// Flush privileges
+
 	// TO DO: Validate the change by reading the result from the database
 	// TO DO: Sync state with results returned from the database
 
@@ -323,6 +326,9 @@ func (r *MysqlGrantResource) Delete(ctx context.Context, req resource.DeleteRequ
 		resp.Diagnostics.AddError("RDS data service client error", revokeUserPrivilegesSqlQueryErr.Error())
 		return
 	}
+
+	// TO DO
+	// Flush privileges
 }
 
 func (r *MysqlGrantResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
