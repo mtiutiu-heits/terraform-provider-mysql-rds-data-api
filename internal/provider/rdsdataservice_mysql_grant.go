@@ -62,6 +62,7 @@ func (r *MysqlGrantResource) Schema(ctx context.Context, req resource.SchemaRequ
 				MarkdownDescription: "The MySQL user name to grant privileges",
 				Required:            true,
 				Validators: []validator.String{
+					// user value cannot be empty
 					stringvalidator.LengthAtLeast(1),
 					// protect against destroying system accounts
 					stringvalidator.NoneOf([]string{"sys"}...),
@@ -83,7 +84,7 @@ func (r *MysqlGrantResource) Schema(ctx context.Context, req resource.SchemaRequ
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 					// protect against destroying system databases
-					stringvalidator.NoneOf([]string{"master", "rdsadmin", "mysql.sys"}...),
+					stringvalidator.NoneOf([]string{"rdsadmin", "mysql.sys"}...),
 				},
 			},
 			"privileges": schema.ListAttribute{
@@ -91,7 +92,10 @@ func (r *MysqlGrantResource) Schema(ctx context.Context, req resource.SchemaRequ
 				Required:            true,
 				ElementType:         types.StringType,
 				Validators: []validator.List{
+					// at least one privilege must be defined
 					listvalidator.SizeAtLeast(1),
+					// privilege definitions cannot be empty
+					listvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
 				},
 			},
 			"database_resource_arn": schema.StringAttribute{
@@ -179,9 +183,6 @@ func (r *MysqlGrantResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// TO DO: Validate the change by reading the result from the database
-	// TO DO: Sync state with results returned from the database
-
 	tflog.Trace(ctx, "created a MySQL user grant resource")
 
 	// Save data into Terraform state
@@ -219,7 +220,8 @@ func (r *MysqlGrantResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	if len(userGrantsSqlQueryResult.Records) == 0 {
+	// The grant usage privilege is always present so at least one record is returned
+	if len(userGrantsSqlQueryResult.Records) == 1 {
 		tflog.Trace(ctx, "MySQL returned no user grant records")
 		// Force resource recreation if data was deleted outside terraform
 		state.Privileges = types.ListNull(types.StringType)
@@ -243,6 +245,7 @@ func (r *MysqlGrantResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// Revoke all privileges first
 	revokeUserPrivilegesSqlQuery := fmt.Sprintf(
+		// Use IF NOT EXISTS condition (only supported by MySQL version >= 8.0)
 		"REVOKE ALL PRIVILEGES ON %s.* FROM '%s'@'%s'",
 		plan.Database.ValueString(),
 		plan.User.ValueString(),
@@ -284,12 +287,6 @@ func (r *MysqlGrantResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	// TO DO
-	// Flush privileges
-
-	// TO DO: Validate the change by reading the result from the database
-	// TO DO: Sync state with results returned from the database
-
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -326,9 +323,6 @@ func (r *MysqlGrantResource) Delete(ctx context.Context, req resource.DeleteRequ
 		resp.Diagnostics.AddError("RDS data service client error", revokeUserPrivilegesSqlQueryErr.Error())
 		return
 	}
-
-	// TO DO
-	// Flush privileges
 }
 
 func (r *MysqlGrantResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

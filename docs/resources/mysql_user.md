@@ -30,5 +30,5 @@ resource "awsrdsdata_mysql_user" "account" {
 - `database_resource_arn` (String) The RDS database resource ARN to run SQL queries against
 - `database_secret_arn` (String) The RDS database secret ARN to use for authentication
 - `host` (String) The MySQL user host value
-- `password` (String, Sensitive) The MySQL password to set for the user
+- `password` (String, Sensitive) The MySQL password to set for the user (must be at least 16 characters long)
 - `user` (String) The MySQL user name to create

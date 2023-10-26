@@ -58,9 +58,10 @@ func (r *MysqlUserResource) Schema(ctx context.Context, req resource.SchemaReque
 				MarkdownDescription: "The MySQL user name to create",
 				Required:            true,
 				Validators: []validator.String{
+					// user value cannot be empty
 					stringvalidator.LengthAtLeast(1),
 					// protect against destroying system accounts
-					stringvalidator.NoneOf([]string{"master", "rdsadmin", "mysql.sys"}...),
+					stringvalidator.NoneOf([]string{"rdsadmin", "mysql.sys"}...),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -68,10 +69,11 @@ func (r *MysqlUserResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "The MySQL password to set for the user",
+				MarkdownDescription: "The MySQL password to set for the user (must be at least 16 characters long)",
 				Required:            true,
 				Sensitive:           true,
 				Validators: []validator.String{
+					// password must be at least 16 characters long
 					stringvalidator.LengthAtLeast(16),
 				},
 			},
@@ -154,7 +156,7 @@ func (r *MysqlUserResource) Create(ctx context.Context, req resource.CreateReque
 	// ======================= Resource CREATE Logic =======================
 
 	createUserSqlQuery := fmt.Sprintf(
-		"CREATE USER '%s'@'%s' IDENTIFIED BY '%s'",
+		"CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED BY '%s'",
 		plan.User.ValueString(),
 		plan.Host.ValueString(),
 		plan.Password.ValueString(),
@@ -172,9 +174,6 @@ func (r *MysqlUserResource) Create(ctx context.Context, req resource.CreateReque
 		resp.Diagnostics.AddError("RDS data service client error", createUserSqlQueryErr.Error())
 		return
 	}
-
-	// TO DO: Validate the change by reading the result from the database
-	// TO DO: Sync state with results returned from the database
 
 	tflog.Trace(ctx, "created a MySQL user resource")
 
@@ -254,9 +253,6 @@ func (r *MysqlUserResource) Update(ctx context.Context, req resource.UpdateReque
 		resp.Diagnostics.AddError("RDS data service client error", updateUserSqlQueryErr.Error())
 		return
 	}
-
-	// TO DO: Validate the change by reading the result from the database
-	// TO DO: Sync state with results returned from the database
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

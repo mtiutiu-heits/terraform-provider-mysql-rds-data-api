@@ -11,7 +11,7 @@ lint:
 	golangci-lint run
 
 # Generate docs
-generate:
+docs:
 	cd tools; go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-dir ..
 
 fmt:
@@ -23,4 +23,4 @@ test:
 testacc:
 	TF_ACC=1 go test -v -cover -timeout 120m ./...
 
-.PHONY: build install lint generate fmt test testacc
+.PHONY: build install lint docs fmt test testacc
