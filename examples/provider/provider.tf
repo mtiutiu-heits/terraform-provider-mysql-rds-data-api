@@ -33,6 +33,7 @@ resource "aws_rds_cluster" "default" {
   master_password         = random_password.master_password.result
   backup_retention_period = 5
   preferred_backup_window = "07:00-09:00"
+  enable_http_endpoint    = true # <- this is very important
 }
 
 resource "awsrdsdata_mysql_user" "account" {
