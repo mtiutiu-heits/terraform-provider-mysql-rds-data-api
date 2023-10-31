@@ -1,13 +1,13 @@
 ---
 page_title: "Provider: AWSRDSDATA"
 description: |-
-  A Terraform provider that uses the [AWS RDS data service](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html) to provision MySQL users and grant privileges.
+  A Terraform provider that uses the Amazon RDS data service to provision SQL users and grant privileges (only MySQL is supported for now).
 ---
 
 # {{ .ProviderShortName | upper }} Provider
 
-The **AWSRDSDATA** provider provides utilities for working with users and privileges on MySQL clusters (Aurora V1) 
-via the [RDS data service](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html).
+The **{{ .ProviderShortName | upper }}** provider provides utilities for working with users and privileges on MySQL clusters (Aurora V1) 
+via the [RDS data service](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html) API.
 It provides resources that allow MySQL users and privileges to be created as part of a Terraform deployment.
 
 **Important Note:**

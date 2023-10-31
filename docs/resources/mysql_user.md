@@ -9,17 +9,38 @@ description: |-
 
 AWS RDS Data MySQL user resource
 
-The `awsrdsdata_mysql_user` resource is used to create MySQL users on an AWS RDS cluster (Aurora V1).
+The `awsrdsdata_mysql_user` resource is used to provision MySQL users on an AWS RDS cluster (Aurora V1) via the [Amazon RDS data service](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html) endpoint.
 
 ## Example Usage
 
 ```terraform
-resource "awsrdsdata_mysql_user" "account" {
+# Provision credentials for the MySQL DB acount used to test the provider
+resource "random_password" "test_account_password" {
+  length  = 16
+  special = false
+}
+
+# Also, store sensitive data in a dedicated AWS secret
+resource "aws_secretsmanager_secret" "test_account_db_credentials" {
+  name = "test_account_db_credentials"
+}
+
+resource "aws_secretsmanager_secret_version" "test_account_db_credentials" {
+  secret_id = aws_secretsmanager_secret.test_account_db_credentials.id
+  secret_string = jsonencode(
+    {
+      username = awsrdsdata_mysql_user.test_account.user
+      password = awsrdsdata_mysql_user.test_account.password
+    }
+  )
+}
+
+resource "awsrdsdata_mysql_user" "test_account" {
   user                  = "test"
   host                  = "%"
-  password              = aws_secretsmanager_secret.sql_user.arn
-  database_resource_arn = aws_rds_cluster.default.arn
-  database_secret_arn   = aws_secretsmanager_secret.db_credentials.arn
+  password              = random_password.test_account_password.result
+  database_resource_arn = "<YOUR_MYSQL_RDS_CLUSTER_ARN_HERE>"
+  database_secret_arn   = "<YOUR_MYSQL_RDS_CLUSTER_MASTER_CREDENTIALS_AWS_SECRET_ARN_HERE>"
 }
 ```
 

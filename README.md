@@ -1,6 +1,6 @@
 # Terraform Provider AWS RDS Data Service
 
-A Terraform provider that uses the [AWS RDS data service](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html) under the hood to provision MySQL users and grant privileges on Aurora clusters (V1).
+A Terraform provider that uses the [AWS RDS data service](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.html) endpoint under the hood to provision MySQL users and grant privileges on Aurora clusters (V1).
 
 ## Requirements
 

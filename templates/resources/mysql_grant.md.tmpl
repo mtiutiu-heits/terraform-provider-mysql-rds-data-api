@@ -9,7 +9,7 @@ description: |-
 
 {{ .Description | trimspace }}
 
-The `{{.Name}}` resource is used to grant privileges for **existing** MySQL users.
+The `{{.Name}}` resource is used to grant or revoke MySQL privileges for users created using the `{{.ProviderShortName}}_mysql_user` resource.
 
 ## Example Usage
 
