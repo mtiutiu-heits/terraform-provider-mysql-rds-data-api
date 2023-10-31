@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
@@ -109,7 +106,6 @@ func (r *MysqlGrantResource) Schema(ctx context.Context, req resource.SchemaRequ
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"database_secret_arn": schema.StringAttribute{
@@ -123,7 +119,6 @@ func (r *MysqlGrantResource) Schema(ctx context.Context, req resource.SchemaRequ
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},
@@ -179,7 +174,7 @@ func (r *MysqlGrantResource) Create(ctx context.Context, req resource.CreateRequ
 	_, grantSqlQueryErr := r.client.ExecuteStatement(ctx, &grantUserPrivilegesStatementOpts)
 
 	if grantSqlQueryErr != nil {
-		resp.Diagnostics.AddError("RDS data service client error", grantSqlQueryErr.Error())
+		resp.Diagnostics.AddError("Resource CREATE operation error", grantSqlQueryErr.Error())
 		return
 	}
 
@@ -213,17 +208,22 @@ func (r *MysqlGrantResource) Read(ctx context.Context, req resource.ReadRequest,
 		Sql:         &userGrantsSqlQuery,
 	}
 
-	userGrantsSqlQueryResult, err := r.client.ExecuteStatement(ctx, &userGrantsQueryStatementOpts)
+	userGrantsSqlQueryResult, userGrantsSqlQueryErr := r.client.ExecuteStatement(ctx, &userGrantsQueryStatementOpts)
 
-	if err != nil {
-		resp.Diagnostics.AddError("RDS data service client error", err.Error())
+	userGrantsNotDefinedErrMsg := fmt.Sprintf(
+		"There is no such grant defined for user '%s' on host '%s'",
+		state.User.ValueString(),
+		state.Host.ValueString(),
+	)
+	if userGrantsSqlQueryErr != nil && !strings.Contains(userGrantsSqlQueryErr.Error(), userGrantsNotDefinedErrMsg) {
+		resp.Diagnostics.AddError("Resource READ operation error", userGrantsSqlQueryErr.Error())
 		return
 	}
 
-	// The grant usage privilege is always present so at least one record is returned
-	if len(userGrantsSqlQueryResult.Records) == 1 {
-		tflog.Trace(ctx, "MySQL returned no user grant records")
-		// Force resource recreation if data was deleted outside terraform
+	// The `GRANT USAGE` privilege is always present so at least one record is returned
+	if userGrantsSqlQueryResult.Records != nil && len(userGrantsSqlQueryResult.Records) == 1 {
+		tflog.Trace(ctx, "MySQL server returned no user grant records")
+		// Force resource recreation if GRANTS deleted outside terraform
 		state.Privileges = types.ListNull(types.StringType)
 	}
 
@@ -260,8 +260,13 @@ func (r *MysqlGrantResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	_, revokeSqlQueryErr := r.client.ExecuteStatement(ctx, &revokeUserPrivilegesStatementOpts)
 
-	if revokeSqlQueryErr != nil {
-		resp.Diagnostics.AddError("RDS data service client error", revokeSqlQueryErr.Error())
+	userGrantsNotDefinedErrMsg := fmt.Sprintf(
+		"There is no such grant defined for user '%s' on host '%s'",
+		plan.User.ValueString(),
+		plan.Host.ValueString(),
+	)
+	if revokeSqlQueryErr != nil && !strings.Contains(revokeSqlQueryErr.Error(), userGrantsNotDefinedErrMsg) {
+		resp.Diagnostics.AddError("Resource UPDATE operation error", revokeSqlQueryErr.Error())
 		return
 	}
 
@@ -283,7 +288,7 @@ func (r *MysqlGrantResource) Update(ctx context.Context, req resource.UpdateRequ
 	_, grantSqlQueryErr := r.client.ExecuteStatement(ctx, &grantUserPrivilegesStatementOpts)
 
 	if grantSqlQueryErr != nil {
-		resp.Diagnostics.AddError("RDS data service client error", grantSqlQueryErr.Error())
+		resp.Diagnostics.AddError("Resource UPDATE operation error", grantSqlQueryErr.Error())
 		return
 	}
 
@@ -319,8 +324,13 @@ func (r *MysqlGrantResource) Delete(ctx context.Context, req resource.DeleteRequ
 
 	_, revokeUserPrivilegesSqlQueryErr := r.client.ExecuteStatement(ctx, &deleteUserStatementOpts)
 
-	if revokeUserPrivilegesSqlQueryErr != nil {
-		resp.Diagnostics.AddError("RDS data service client error", revokeUserPrivilegesSqlQueryErr.Error())
+	userGrantsNotDefinedErrMsg := fmt.Sprintf(
+		"There is no such grant defined for user '%s' on host '%s'",
+		state.User.ValueString(),
+		state.Host.ValueString(),
+	)
+	if revokeUserPrivilegesSqlQueryErr != nil && !strings.Contains(revokeUserPrivilegesSqlQueryErr.Error(), userGrantsNotDefinedErrMsg) {
+		resp.Diagnostics.AddError("Resource DELETE operation error", revokeUserPrivilegesSqlQueryErr.Error())
 		return
 	}
 }

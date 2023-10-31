@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
@@ -10,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/rdsdata"
+	rdsdatatypes "github.com/aws/aws-sdk-go-v2/service/rdsdata/types"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -65,7 +63,6 @@ func (r *MysqlUserResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"password": schema.StringAttribute{
@@ -82,7 +79,6 @@ func (r *MysqlUserResource) Schema(ctx context.Context, req resource.SchemaReque
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
@@ -102,7 +98,6 @@ func (r *MysqlUserResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"database_secret_arn": schema.StringAttribute{
@@ -116,7 +111,6 @@ func (r *MysqlUserResource) Schema(ctx context.Context, req resource.SchemaReque
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},
@@ -171,7 +165,7 @@ func (r *MysqlUserResource) Create(ctx context.Context, req resource.CreateReque
 	_, createUserSqlQueryErr := r.client.ExecuteStatement(ctx, &createUserStatementOpts)
 
 	if createUserSqlQueryErr != nil {
-		resp.Diagnostics.AddError("RDS data service client error", createUserSqlQueryErr.Error())
+		resp.Diagnostics.AddError("Resource CREATE operation error", createUserSqlQueryErr.Error())
 		return
 	}
 
@@ -207,16 +201,39 @@ func (r *MysqlUserResource) Read(ctx context.Context, req resource.ReadRequest, 
 	userSqlQueryResult, userSqlQueryErr := r.client.ExecuteStatement(ctx, &userQueryStatementOpts)
 
 	if userSqlQueryErr != nil {
-		resp.Diagnostics.AddError("RDS data service client error", userSqlQueryErr.Error())
+		resp.Diagnostics.AddError("Resource READ operation error", userSqlQueryErr.Error())
 		return
 	}
 
-	if len(userSqlQueryResult.Records) == 0 {
-		tflog.Trace(ctx, "MySQL returned no user records")
-		// Force resource recreation if data was deleted outside terraform
+	if userSqlQueryResult.Records != nil && len(userSqlQueryResult.Records) == 0 {
+		tflog.Trace(ctx, "MySQL server returned no user records")
+		// Force resource recreation if user was deleted outside terraform
 		state.User = types.StringValue("")
 		state.Host = types.StringValue("")
+		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+		return
 	}
+
+	userRecord, ok := userSqlQueryResult.Records[0][0].(*rdsdatatypes.FieldMemberStringValue)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Resource READ operation error",
+			"MySQL `user` type assertion error: check response returned from the AWS rdsdata service API call",
+		)
+		return
+	}
+
+	hostRecord, ok := userSqlQueryResult.Records[0][1].(*rdsdatatypes.FieldMemberStringValue)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Resource READ operation error",
+			"MySQL `host` type assertion error: check response returned from the AWS rdsdata service API call",
+		)
+		return
+	}
+
+	state.User = types.StringValue(userRecord.Value)
+	state.Host = types.StringValue(hostRecord.Value)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -250,7 +267,7 @@ func (r *MysqlUserResource) Update(ctx context.Context, req resource.UpdateReque
 	_, updateUserSqlQueryErr := r.client.ExecuteStatement(ctx, &updateUserStatementOpts)
 
 	if updateUserSqlQueryErr != nil {
-		resp.Diagnostics.AddError("RDS data service client error", updateUserSqlQueryErr.Error())
+		resp.Diagnostics.AddError("Resource UPDATE operation error", updateUserSqlQueryErr.Error())
 		return
 	}
 
@@ -285,7 +302,7 @@ func (r *MysqlUserResource) Delete(ctx context.Context, req resource.DeleteReque
 	_, deleteUserSqlQueryErr := r.client.ExecuteStatement(ctx, &deleteUserStatementOpts)
 
 	if deleteUserSqlQueryErr != nil {
-		resp.Diagnostics.AddError("RDS data service client error", deleteUserSqlQueryErr.Error())
+		resp.Diagnostics.AddError("Resource DELETE operation error", deleteUserSqlQueryErr.Error())
 		return
 	}
 }

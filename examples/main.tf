@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     awsrdsdata = {
-      source = "hashicorp.com/mtiutiu-heits/awsrdsdata"
+      source = "registry.terraform.io/mtiutiu-heits/awsrdsdata"
     }
   }
 }
