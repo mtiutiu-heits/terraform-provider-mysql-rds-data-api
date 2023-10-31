@@ -20,20 +20,22 @@ Use the navigation to the left to read about the available resources.
 
 ```terraform
 provider "awsrdsdata" {
-  region = "us-east-1"
+  region = "us-east-1" # optional
 }
 
+# Provision credentials for the master DB acount
 resource "random_password" "master_password" {
   length  = 16
   special = false
 }
 
-resource "aws_secretsmanager_secret" "db_credentials" {
+# Also, store sensitive data in a dedicated AWS secret
+resource "aws_secretsmanager_secret" "master_db_credentials" {
   name = "master_db_credentials"
 }
 
-resource "aws_secretsmanager_secret_version" "db_credentials" {
-  secret_id = aws_secretsmanager_secret.db_credentials.id
+resource "aws_secretsmanager_secret_version" "master_db_credentials" {
+  secret_id = aws_secretsmanager_secret.master_db_credentials.id
   secret_string = jsonencode(
     {
       username = aws_rds_cluster.default.master_username
@@ -57,21 +59,42 @@ resource "aws_rds_cluster" "default" {
   enable_http_endpoint    = true # <- this is very important
 }
 
-resource "awsrdsdata_mysql_user" "account" {
+# Provision credentials for the MySQL DB acount used to test the provider
+resource "random_password" "test_account_password" {
+  length  = 16
+  special = false
+}
+
+# Also, store sensitive data in a dedicated AWS secret
+resource "aws_secretsmanager_secret" "test_account_db_credentials" {
+  name = "master_db_credentials"
+}
+
+resource "aws_secretsmanager_secret_version" "test_account_db_credentials" {
+  secret_id = aws_secretsmanager_secret.test_account_db_credentials.id
+  secret_string = jsonencode(
+    {
+      username = awsrdsdata_mysql_user.test_account.user
+      password = awsrdsdata_mysql_user.test_account.password
+    }
+  )
+}
+
+resource "awsrdsdata_mysql_user" "test_account" {
   user                  = "test"
   host                  = "%"
-  password              = "test123456789012333"
+  password              = random_password.test_account_password.result
   database_resource_arn = aws_rds_cluster.default.arn
-  database_secret_arn   = aws_secretsmanager_secret.db_credentials.arn
+  database_secret_arn   = aws_secretsmanager_secret.master_db_credentials.arn
 }
 
 resource "awsrdsdata_mysql_grant" "permissions" {
-  user                  = awsrdsdata_mysql_user.account.user
-  host                  = awsrdsdata_mysql_user.account.host
-  database              = "test"
+  user                  = awsrdsdata_mysql_user.test_account.user
+  host                  = awsrdsdata_mysql_user.test_account.host
+  database              = "test" # <- the database must exist beforehand
   privileges            = ["SELECT", "INSERT", "UPDATE"]
-  database_resource_arn = aws_rds_cluster.default
-  database_secret_arn   = aws_secretsmanager_secret.db_credentials.arn
+  database_resource_arn = aws_rds_cluster.default.arn
+  database_secret_arn   = aws_secretsmanager_secret.master_db_credentials.arn
 }
 ```
 
