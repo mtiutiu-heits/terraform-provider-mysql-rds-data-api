@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.3
 	github.com/aws/aws-sdk-go-v2/service/rdsdata v1.19.1
-	github.com/dcarbone/terraform-plugin-framework-utils/v3 v3.4.2
+	github.com/dcarbone/terraform-plugin-framework-utils/v3 v3.5.0
 	github.com/hashicorp/terraform-plugin-framework v1.5.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0

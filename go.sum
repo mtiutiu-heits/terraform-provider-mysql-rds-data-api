@@ -30,8 +30,8 @@ github.com/bufbuild/protocompile v0.4.0 h1:LbFKd2XowZvQ/kajzguUp2DC9UEIQhIq77fZZ
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dcarbone/terraform-plugin-framework-utils/v3 v3.4.2 h1:aiuV5us866U7GqgHIJqqD1nvbnDi1g8uGxBC3/CuV1o=
-github.com/dcarbone/terraform-plugin-framework-utils/v3 v3.4.2/go.mod h1:qlLkW1km+x3GnUo2gg3jW8Y/0n2idK/nFLGREsQnONc=
+github.com/dcarbone/terraform-plugin-framework-utils/v3 v3.5.0 h1:RCCvoS7bF8YV+nr39At4srZmqJ60fBHZ3wqCyOjJ/4s=
+github.com/dcarbone/terraform-plugin-framework-utils/v3 v3.5.0/go.mod h1:UESRaf2PvcgrnjwpQNinDCt4+6akPL8BG0GCGs2ej/8=
 github.com/fatih/color v1.13.0 h1:8LOYc1KYPPmyKMuN8QV2DNRWNbLo6LZ0iLs8+mlH53w=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
